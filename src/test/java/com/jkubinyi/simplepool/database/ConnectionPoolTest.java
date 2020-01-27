@@ -26,7 +26,7 @@ public class ConnectionPoolTest {
 						JDBCUrl.from(new MySqlDialect(), "jdbc:mysql://localhost:3306/SpringTest?useSSL=false", "r00t", "")
 				)
 				.addFallbackUrl(
-						JDBCUrl.from(new MySqlDialect(), "jdbc:mysql://localhost:3306/SpringTest?useSSL=false", "root", "")
+						JDBCUrl.from(new MySqlDialect(), "jdbc:mysql://localhost:3306/SpringTest?useSSL=false", "root", "password")
 				)
 				.setConnectionConfiguration(connection -> {
 					System.out.println(connection);

@@ -117,7 +117,7 @@ public final class ConnectionPoolConfiguration {
 		return connectionConfiguration;
 	}
 
-	static class Builder {
+	public static class Builder {
 		private final JDBCUrl mainJdbcUrl;
 		
 		private final List<JDBCUrl> fallbackJdbcUrls = new ArrayList<>();
