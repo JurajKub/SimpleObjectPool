@@ -21,7 +21,7 @@ public final class ConnectionPoolConfiguration {
 	 * @author jurajkubinyi
 	 */
 	@FunctionalInterface
-	interface ConnectionConfiguration {
+	public interface ConnectionConfiguration {
 		void configure(Connection connection) throws Exception;
 	}
 	
