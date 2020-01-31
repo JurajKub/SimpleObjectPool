@@ -150,7 +150,8 @@ public final class ConnectionPoolConfiguration {
 		}
 
 		/**
-		 * @return Fallback URLs for the JDBC Driver. Uses native DriverManager to find appropriate Driver on class path.
+		 * @param numOfFailsToFallback How many fails are needed to switch to one of fallback URLs.
+		 * @return Builder instance.
 		 */
 		public Builder setNumOfFailsToFallback(int numOfFailsToFallback) {
 			this.numOfFailsToFallback = numOfFailsToFallback;
@@ -158,7 +159,9 @@ public final class ConnectionPoolConfiguration {
 		}
 		
 		/**
-		 * @return If true before returning fallback Connection from the pool verifies whether main server did not come online again.
+		 * @param eagerRetry If true before returning fallback Connection from the pool verifies
+		 * whether main server did not come online again.
+		 * @return Builder instance.
 		 */
 		public Builder setEagerRetry(boolean eagerRetry) {
 			this.eagerRetry = eagerRetry;
@@ -166,7 +169,8 @@ public final class ConnectionPoolConfiguration {
 		}
 
 		/**
-		 * @return How many fails are needed to switch to one of fallback URLs.
+		 * @param url How many fails are needed to switch to one of fallback URLs.
+		 * @return Builder instance.
 		 */
 		public Builder addFallbackUrl(JDBCUrl url) {
 			this.fallbackJdbcUrls.add(url);
@@ -174,9 +178,10 @@ public final class ConnectionPoolConfiguration {
 		}
 		
 		/**
-		 * @return <p>Number of seconds to wait between next retry.</p> <b>Caution:</b> Higher values might slow down connection acquiring
+		 * @param waitTimeBetweenRetryInS <p>Number of seconds to wait between next retry.</p> <b>Caution:</b> Higher values might slow down connection acquiring
 		 * from the {@link ConnectionPoolFactory}. <i>On the other hand, using small values might trip {@link #getNumOfFailsToFallback()}
 		 * and make fall into the fail-over mode prematurely.</i>
+		 * @return Builder instance.
 		 */
 		public Builder setWaitTimeBetweenRetryInS(int waitTimeBetweenRetryInS) {
 			this.waitTimeBetweenRetryInS = waitTimeBetweenRetryInS;
@@ -184,7 +189,8 @@ public final class ConnectionPoolConfiguration {
 		}
 		
 		/**
-		 * @return Maximum number of seconds to wait till marking the connection as not valid.
+		 * @param maxValidationTimeoutInS Maximum number of seconds to wait till marking the connection as not valid.
+		 * @return Builder instance.
 		 */
 		public Builder setMaxValidationTimeoutInS(int maxValidationTimeoutInS) {
 			this.maxValidationTimeoutInS = maxValidationTimeoutInS;
@@ -192,7 +198,8 @@ public final class ConnectionPoolConfiguration {
 		}
 
 		/**
-		 * @return Strategy used before returning object back to the pool.
+		 * @param returnStrategy Strategy used before returning object back to the pool.
+		 * @return Builder instance.
 		 */
 		public Builder setReturnStrategy(ReturnStrategy returnStrategy) {
 			this.returnStrategy = returnStrategy;
@@ -200,8 +207,9 @@ public final class ConnectionPoolConfiguration {
 		}
 		
 		/**
-		 * @return {@link ConnectionConfiguration} which is applied to each {@link Connection} by
+		 * @param connectionConfiguration {@link ConnectionConfiguration} which is applied to each {@link Connection} by
 		 * {@link ConnectionPoolFactory} right after creating a new {@link java.sql.Connection}.
+		 * @return Builder instance.
 		 */
 		public Builder setConnectionConfiguration(ConnectionConfiguration connectionConfiguration) {
 			this.connectionConfiguration = connectionConfiguration;

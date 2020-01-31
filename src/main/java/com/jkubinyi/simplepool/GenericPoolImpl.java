@@ -60,7 +60,7 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 	/**
 	 * <p>Used to start the object pool ensuring minimum number of objects are available at the disposal.</p>
 	 * <b>Blocking operation</b>. Should be ideally called once per application
-	 * lifecycle (at the startup, change of application configuration, etc.)</b>
+	 * lifecycle (at the startup, change of application configuration, etc.).
 	 */
 	public void create() {
 		if(this.prepared.compareAndSet(false, true)) {
@@ -348,7 +348,7 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
             return  obj instanceof ObjectId &&
                     ((ObjectId)obj).object == object;
         }
-
+        
         /**
          * @return the wrapped object
          */

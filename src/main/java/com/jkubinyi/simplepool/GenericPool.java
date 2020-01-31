@@ -22,7 +22,7 @@ public interface GenericPool<T> {
 	/**
 	 * <p>Used to start the object pool ensuring minimum number of objects are available at the disposal.</p>
 	 * <b>Blocking operation</b>. Should be ideally called once per application
-	 * lifecycle (at the startup, change of application configuration, etc.)</b>
+	 * lifecycle (at the startup, change of application configuration, etc.)
 	 */
 	public void create();
 	

@@ -15,6 +15,7 @@ public final class PoolObject<T> {
     
     /**
      * Creates a wrapper instance of the object for the pool.
+     * @param object Object which will be stored in pool.
      */
     public PoolObject(final T object) {
         this.object = object;

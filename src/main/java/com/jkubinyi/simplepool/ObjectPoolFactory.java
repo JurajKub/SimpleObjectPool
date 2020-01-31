@@ -5,8 +5,9 @@ public interface ObjectPoolFactory<T> {
 	/**
 	 * Used to produce object to be used by the pool wrapped by {@link PoolObject} class instance.
 	 * 
+	 * @param pool {@link GenericPool} which is requesting to create a new object.
 	 * @return Object wrapped by PoolObject
-	 * @throws Exception
+	 * @throws Exception Thrown if the object creation is not successful.
 	 */
 	PoolObject<T> produceObject(GenericPool<T> pool) throws Exception;
 	
