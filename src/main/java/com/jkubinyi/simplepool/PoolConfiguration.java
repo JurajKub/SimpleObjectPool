@@ -11,6 +11,7 @@ public class PoolConfiguration {
 	private int maxObjectIdleTime;
 	private boolean prefersLiFo;
 	private boolean autostart;
+	private final PoolEventHandler eventHandler;
 
 	/**
 	 * @param initialPoolSize
@@ -22,7 +23,7 @@ public class PoolConfiguration {
 	 * @param prefersLiFo
 	 */
 	private PoolConfiguration(int initialPoolSize, int maxWaitInSec, int maxPoolSize, int maxPoolIdleSize,
-			int minPoolIdleSize, int maxObjectIdleTime, boolean prefersLiFo, boolean autostart) {
+			int minPoolIdleSize, int maxObjectIdleTime, boolean prefersLiFo, boolean autostart, PoolEventHandler eventHandler) {
 		super();
 		this.initialPoolSize = initialPoolSize;
 		
@@ -37,6 +38,7 @@ public class PoolConfiguration {
 		this.maxObjectIdleTime = maxObjectIdleTime;
 		this.prefersLiFo = prefersLiFo;
 		this.autostart = autostart;
+		this.eventHandler = eventHandler;
 	}
 
 	public int getInitialPoolSize() {
@@ -101,6 +103,10 @@ public class PoolConfiguration {
 		return autostart;
 	}
 
+	public PoolEventHandler getEventHandler() {
+		return eventHandler;
+	}
+
 	public static class Builder {
 
 		private int initialPoolSize = 1;
@@ -111,6 +117,7 @@ public class PoolConfiguration {
 		private int maxObjectIdleTime = 100;
 		private boolean prefersLiFo = false;
 		private boolean autostart = true;
+		private PoolEventHandler eventHandler = new DefaultEventHandler();
 		
 		public Builder setInitialPoolSize(int initialPoolSize) {
 			this.initialPoolSize = initialPoolSize;
@@ -144,9 +151,13 @@ public class PoolConfiguration {
 			this.autostart = autostart;
 			return this;
 		}
+		public Builder setEventHandler(PoolEventHandler handler) {
+			this.eventHandler = handler;
+			return this;
+		}
 		public PoolConfiguration build() {
 			return new PoolConfiguration(initialPoolSize, maxWaitInSec, maxPoolSize, maxPoolIdleSize,
-					minPoolIdleSize, maxObjectIdleTime, prefersLiFo, autostart);
+					minPoolIdleSize, maxObjectIdleTime, prefersLiFo, autostart, eventHandler);
 		}
 	}
 }

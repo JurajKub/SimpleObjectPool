@@ -78,6 +78,7 @@ public class Connection implements java.sql.Connection {
 	 */
 	@Override
 	public void close() throws SQLException {
+		System.out.println("Returned");
 		try {
 			this.pool.returnObject(this);
 		} catch(Exception e) {

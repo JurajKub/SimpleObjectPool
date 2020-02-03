@@ -7,10 +7,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.jkubinyi.simplepool.PoolEventHandler.Severity;
 import com.jkubinyi.simplepool.misc.InterruptibleLinkedBlockingDeque;
 
-// TODO: Create event logging facility
-// TODO: Create statistics
 public class GenericPoolImpl<T> implements GenericPool<T> {
 
 	/** Flag whether pool has been initialzed and is prepared to be used. **/
@@ -21,6 +20,12 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 	 * ones that did throw exception during producing are counted.
 	 **/
 	private AtomicLong createdObjects = new AtomicLong(0);
+
+	/** 
+	 * Counter how many objects were destroyed by the pool. All objects even
+	 * those which threw exception are counted.
+	 **/
+	private AtomicLong destroyedObjects = new AtomicLong(0);
 
 	/** Map used to store references to all objects currently known by the pool. **/
 	private final Map<ObjectId<T>, PoolObject<T>> allObjects = new ConcurrentHashMap<>();
@@ -54,6 +59,10 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 
 	public long getNumCreated() {
 		return this.createdObjects.get();
+	}
+
+	public long getNumDestroyed() {
+		return this.destroyedObjects.get();
 	}
 
 	// Main methods API - create, borrow, return and destroy
@@ -102,12 +111,17 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 			try {
 				this.factory.sleepObject(newObject);
 			} catch(final Exception e) {
+				this.newEvent(Severity.error, "Exception during sleeping object {}: ", newObject, e);
 				try {
 					this.destroy(newObject);
-				} catch(final Exception ee) { }
+				} catch(final Exception ee) {
+					this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", newObject);
+				}
 				try {
 					this.checkForMinimumIdles();
-				} catch(final Exception ee) { }
+				} catch(final Exception ee) {
+					this.newEvent(Severity.error, "Pool could not autocreate minimum objects: ", ee);
+				}
 				return;
 			}
 
@@ -117,13 +131,18 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 			if(this.isClosed() || (maxIdleSize > -1 && maxIdleSize <= this.idleObjects.size())) {
 				try {
 					this.destroy(newObject);
-				} catch(final Exception e) { }
+				} catch(final Exception e) {
+					this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", newObject);
+				}
 				try {
 					this.checkForMinimumIdles();
-				} catch(final Exception e) { }
+				} catch(final Exception e) {
+					this.newEvent(Severity.error, "Pool could not autocreate minimum objects: ", e);
+				}
 			} else {
 				if(prefersLiFo) this.idleObjects.addFirst(newObject);
 				else this.idleObjects.addLast(newObject);
+				this.newEvent(Severity.info, "Object {} returned back to the idle objects.", newObject);
 
 				if(this.isClosed()) this.clear();
 			}
@@ -168,45 +187,55 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 			} catch(final Exception e) {
 				try {
 					this.destroy(object);
-				} catch(final Exception e1) { }
-
-				object = null;
+				} catch(final Exception e1) {
+					this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+				}
+				
 				if(createdObject) {
 					final Exception issExc = new IllegalStateException("Unable to activate object.");
 					issExc.initCause(e);
 					throw issExc;
 				} else {
-					// TODO: Add to the supplied log
+					this.newEvent(Severity.warn, "Object {} could not be activated and was destroyed.", object);
 				}
-			}
-
-			boolean valid = false;
-			try {
-				valid = this.factory.validateObject(object);
-			} catch(final Exception e) {
-				// TODO: Add to the supplied log
-				try {
-					this.destroy(object);
-				} catch(final Exception ee) { }
 				object = null;
-				if(createdObject) {
-					final Exception issExc = new IllegalStateException("Unable to validate object.");
-					issExc.initCause(e);
-					throw issExc;
+			}
+			
+			if(object != null) {
+				boolean valid = false;
+				try {
+					valid = this.factory.validateObject(object);
+				} catch(final Exception e) {
+					this.newEvent(Severity.warn, "Object {} could not be validated and was destroyed.", object);
+					try {
+						this.destroy(object);
+					} catch(final Exception ee) {
+						this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+					}
+					object = null;
+					if(createdObject) {
+						final Exception issExc = new IllegalStateException("Unable to validate object.");
+						issExc.initCause(e);
+						throw issExc;
+					}
 				}
-			}
-			if(object != null && !valid) { // Object exists, but validation failed
-				try {
-					this.destroy(object);
-				} catch(final Exception ee) { }
-				object = null;
-				if(createdObject) {
-					final Exception issExc = new IllegalStateException("Unable to validate object. (Validation not successful)");
-					throw issExc;
+				
+				if(!valid) { // Object exists, but validation failed
+					try {
+						this.destroy(object);
+					} catch(final Exception ee) {
+						this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+					}
+					object = null;
+					if(createdObject) {
+						final Exception issExc = new IllegalStateException("Unable to validate object. (Validation not successful)");
+						throw issExc;
+					}
 				}
 			}
 		}
-
+		
+		this.newEvent(Severity.info, "Object {} borrowed from the pool.", object);
 		return object.getObject();
 	}
 
@@ -217,7 +246,8 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 		try {
 			this.factory.destroyObject(object);
 		} finally {
-			// TODO: add to statistics
+			this.newEvent(Severity.info, "Object {} was destroyed.", object);
+			this.destroyedObjects.incrementAndGet();
 		}
 	}
 
@@ -272,7 +302,7 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 			try {
 				this.destroy(object);
 			} catch(final Exception e) {
-				// TODO: log
+				this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
 			}
 			object = this.idleObjects.poll();
 		}
@@ -308,10 +338,13 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 		return null;
 
 	}
-
-	// TODO: create logging
+	
 	private void caughtException(Exception e) {
-
+		this.newEvent(Severity.error, "Exception during execution: ", e);
+	}
+	
+	private void newEvent(Severity severity, String format, Object... objects) {
+		this.config.getEventHandler().newEvent(severity, format, objects);
 	}
 
 	/**

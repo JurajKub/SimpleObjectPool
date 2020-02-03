@@ -17,6 +17,12 @@ public interface GenericPool<T> {
 	 * from initiating the pool. No methods can reset this counter, nor {@link #clear()}.
 	 */
 	public long getNumCreated();
+
+	/**
+	 * @return Gets total number of destroyed objects counting from initiating the pool.
+	 * No methods can reset this counter, nor {@link #clear()}.
+	 */
+	public long getNumDestroyed();
 	
 	// Main methods API - create, borrow, return and destroy
 	/**

@@ -25,7 +25,7 @@ public final class ConnectionPoolConfiguration {
 		void configure(Connection connection) throws Exception;
 	}
 	
-	enum ReturnStrategy {
+	public enum ReturnStrategy {
 		ROLLBACK,
 		COMMIT,
 		NO_ACTION
