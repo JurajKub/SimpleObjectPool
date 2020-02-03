@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.jkubinyi.simplepool.PoolEventHandler.Severity;
+import com.jkubinyi.simplepool.common.PoolEventHandler.Severity;
 import com.jkubinyi.simplepool.misc.InterruptibleLinkedBlockingDeque;
 
 public class GenericPoolImpl<T> implements GenericPool<T> {
@@ -180,28 +180,7 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 
 			if(object == null)
 				throw new NoSuchElementException("Cannot obtain object from the pool.");
-			else object.allocate();
-
-			try {
-				this.factory.activateObject(object);
-			} catch(final Exception e) {
-				try {
-					this.destroy(object);
-				} catch(final Exception e1) {
-					this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
-				}
-				
-				if(createdObject) {
-					final Exception issExc = new IllegalStateException("Unable to activate object.");
-					issExc.initCause(e);
-					throw issExc;
-				} else {
-					this.newEvent(Severity.warn, "Object {} could not be activated and was destroyed.", object);
-				}
-				object = null;
-			}
-			
-			if(object != null) {
+			else {
 				boolean valid = false;
 				try {
 					valid = this.factory.validateObject(object);
@@ -220,7 +199,7 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 					}
 				}
 				
-				if(!valid) { // Object exists, but validation failed
+				if(!valid && object != null) { // Object exists, but validation failed
 					try {
 						this.destroy(object);
 					} catch(final Exception ee) {
@@ -230,6 +209,27 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 					if(createdObject) {
 						final Exception issExc = new IllegalStateException("Unable to validate object. (Validation not successful)");
 						throw issExc;
+					}
+				} else if(valid) {
+					object.allocate();
+					
+					try {
+						this.factory.activateObject(object);
+					} catch(final Exception e) {
+						try {
+							this.destroy(object);
+						} catch(final Exception e1) {
+							this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+						}
+						
+						if(createdObject) {
+							final Exception issExc = new IllegalStateException("Unable to activate object.");
+							issExc.initCause(e);
+							throw issExc;
+						} else {
+							this.newEvent(Severity.warn, "Object {} could not be activated and was destroyed.", object);
+						}
+						object = null;
 					}
 				}
 			}

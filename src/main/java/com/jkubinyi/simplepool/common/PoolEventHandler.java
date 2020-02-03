@@ -1,4 +1,6 @@
-package com.jkubinyi.simplepool;
+package com.jkubinyi.simplepool.common;
+
+import com.jkubinyi.simplepool.GenericPool;
 
 /**
  * Called by the {@link GenericPool} when some important event happens.

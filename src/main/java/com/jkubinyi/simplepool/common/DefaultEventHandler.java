@@ -1,4 +1,4 @@
-package com.jkubinyi.simplepool;
+package com.jkubinyi.simplepool.common;
 
 /**
  * Default event handler which is totally quiet. Does not do anything.

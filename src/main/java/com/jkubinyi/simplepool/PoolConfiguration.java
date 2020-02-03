@@ -1,6 +1,8 @@
 package com.jkubinyi.simplepool;
 
-// TODO: min/max idlePoolSize check if needed
+import com.jkubinyi.simplepool.common.DefaultEventHandler;
+import com.jkubinyi.simplepool.common.PoolEventHandler;
+
 public class PoolConfiguration {
 
 	private int initialPoolSize;

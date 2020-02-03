@@ -97,7 +97,7 @@ public final class PoolObject<T> {
         synchronized (this) {
             result.append(state.toString());
         }
-        result.append("; age: ");
+        result.append("; created: ");
         result.append(this.creationTime);
         result.append("]");
         return result.toString();
