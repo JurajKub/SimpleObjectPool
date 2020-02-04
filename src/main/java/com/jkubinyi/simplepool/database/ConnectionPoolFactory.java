@@ -54,6 +54,8 @@ public class ConnectionPoolFactory implements ObjectPoolFactory<Connection> {
 				try {
 					connection = this.createFallbackConnection(pool);
 				} catch(SQLException e) { } // TODO: do logging
+			} else {
+				this.inFallback = false;
 			}
 		}
 		if(connection == null) throw new IllegalStateException("Cannot obtain Connection.");
@@ -74,23 +76,14 @@ public class ConnectionPoolFactory implements ObjectPoolFactory<Connection> {
 	@Override
 	public boolean validateObject(PoolObject<Connection> object) throws Exception {
 		Connection connection = object.getObject();
-		if(!connection.isClosed()) {
-			try {
-				boolean result;
-				Optional<String> optionalLinkValidityQuery = connection.getJdbcUrl().getDialect().getLinkValidityQuery();
-				
-				if(optionalLinkValidityQuery.isPresent()) {
-					try(Statement st = connection.createStatement()) {
-						st.setQueryTimeout(this.config.getMaxValidationTimeoutInS());
-						result = st.execute(optionalLinkValidityQuery.get());
-					}
-				} else
-					result = connection.isValid(this.config.getMaxValidationTimeoutInS());
-				return result;
-			} catch(SQLException e) {
+		if(this.config.isEagerRetry() && !connection.getJdbcUrl().equals(this.config.getMainJdbcUrl())) {
+			if(this.tryConnectivity(this.config.getMainJdbcUrl())) {
+				this.inFallback = false;
 				return false;
 			}
 		}
+		
+		if(this.validateConnection(connection)) return true;
 		return false;
 	}
 
@@ -114,6 +107,10 @@ public class ConnectionPoolFactory implements ObjectPoolFactory<Connection> {
 	}
 	
 	// Methods directly connected to the ConnectionPoolFactory logic
+	/**
+	 * @return {@code true} if the pool uses a fallback (backup) connection.
+	 * Should automatically recover when the main server goes back online depending on the configuration.
+	 */
 	public boolean inFallbackMode() {
 		return this.inFallback;
 	}
@@ -133,6 +130,64 @@ public class ConnectionPoolFactory implements ObjectPoolFactory<Connection> {
 	
 	private Connection createMainConnection(GenericPool<Connection> pool) throws SQLException {
 		return this.createConnection(this.config.getMainJdbcUrl(), pool);
+	}
+	
+	private boolean validateConnection(Connection connection) {
+		return this.validateConnection(connection.getConnection(), connection.getJdbcUrl());
+	}
+	
+	private boolean validateConnection(java.sql.Connection connection, JDBCUrl jdbcUrl) {
+		try {
+			if(!connection.isClosed()) {
+				boolean result;
+				Optional<String> optionalLinkValidityQuery = jdbcUrl.getDialect().getLinkValidityQuery();
+				
+				if(optionalLinkValidityQuery.isPresent()) {
+					try(Statement st = connection.createStatement()) {
+						st.setQueryTimeout(this.config.getMaxValidationTimeoutInS());
+						result = st.execute(optionalLinkValidityQuery.get());
+					}
+				} else
+					result = connection.isValid(this.config.getMaxValidationTimeoutInS());
+				return result;
+			}
+		} catch(SQLException e) {
+			return false;
+		}
+		return false;
+	}
+	
+	/**
+	 * Used to try if the JDBCUrl is reachable or not.
+	 * 
+	 * @param jdbcUrl JDBCUrl to test.
+	 * @return {@code true} if it can be reached and the link is working.
+	 */
+	private boolean tryConnectivity(JDBCUrl jdbcUrl) {
+		String url = jdbcUrl.getUrl();
+		Optional<String> optionalUsername = jdbcUrl.getUsername();
+		Optional<String> optionalPassword = jdbcUrl.getPassword();
+		
+		java.sql.Connection connection = null;
+		try {
+			if(optionalUsername.isPresent())
+				connection = DriverManager.getConnection(url, optionalUsername.get(), optionalPassword.orElse(null));
+			else
+				connection = DriverManager.getConnection(url);
+			
+			if(this.validateConnection(connection, jdbcUrl)) {
+				try {
+					connection.close();
+				} catch(SQLException e) { }
+				return true;
+			} else {
+				try {
+					connection.close();
+				} catch(SQLException e) { }
+			}
+		} catch(SQLException e) { }
+		
+		return false;
 	}
 	
 	private Connection createConnection(JDBCUrl jdbcUrl, GenericPool<Connection> pool) throws SQLException {

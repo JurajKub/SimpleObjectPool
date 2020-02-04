@@ -191,6 +191,11 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 					} catch(final Exception ee) {
 						this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
 					}
+					try {
+						this.checkForMinimumIdles();
+					} catch(final Exception ee) {
+						this.newEvent(Severity.error, "Pool could not autocreate minimum objects: ", ee);
+					}
 					object = null;
 					if(createdObject) {
 						final Exception issExc = new IllegalStateException("Unable to validate object.");
@@ -204,6 +209,11 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 						this.destroy(object);
 					} catch(final Exception ee) {
 						this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+					}
+					try {
+						this.checkForMinimumIdles();
+					} catch(final Exception ee) {
+						this.newEvent(Severity.error, "Pool could not autocreate minimum objects: ", ee);
 					}
 					object = null;
 					if(createdObject) {
@@ -220,6 +230,11 @@ public class GenericPoolImpl<T> implements GenericPool<T> {
 							this.destroy(object);
 						} catch(final Exception e1) {
 							this.newEvent(Severity.warn, "Object {} could not be destroyed. (Already destroyed?)", object);
+						}
+						try {
+							this.checkForMinimumIdles();
+						} catch(final Exception ee) {
+							this.newEvent(Severity.error, "Pool could not autocreate minimum objects: ", ee);
 						}
 						
 						if(createdObject) {
